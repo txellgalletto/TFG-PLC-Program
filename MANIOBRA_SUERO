@@ -1,0 +1,481 @@
+(* Seqüència maniobra Suero -------------------------------------------------------------------------------------------------------------------------------------------------------  *)
+CASE "DB_SUERO".OUT.NumSeqActual OF
+       
+    0: // Inici de la seqüència
+        IF "DB_PRINCIPAL".MARXA_MAQUINA AND ("DB_PIPETA_ACTUAL".COM_OK OR "DB_COM_PIPETA".SIMULAR_COM) AND NOT "DB_SUERO".OUT.FiManiobra THEN
+            IF "DB_SUERO".OUT.PuntesAgafades THEN
+                "DB_SUERO".OUT.NumSeqActual := 100;
+            ELSE
+                "DB_SUERO".OUT.NumSeqActual := 10;
+            END_IF;
+        END_IF;
+       
+        // Anar a HOME
+        IF (NOT "DB_PRINCIPAL".MARXA_MAQUINA OR ("DB_SUERO".OUT.FiManiobra AND NOT "DB_SUERO".OUT.PuntesAgafades)) AND NOT "RbtdinRobotHome" THEN
+            "DB_SUERO".OUT.NumSeqActual := 1000;
+        END_IF;
+       
+        // Anar a tirar puntes
+        IF "DB_PRINCIPAL".MARXA_MAQUINA AND "DB_SUERO".OUT.FiManiobra AND "DB_SUERO".OUT.PuntesAgafades THEN
+            "DB_SUERO".OUT.NumSeqActual := 500;
+        END_IF;
+
+    10: // Anar a apro agafar puntes
+        "DB_SUERO".OUT.xOffsetActual := INT_TO_WORD("CAIXA_PUNTES_MULTI".OUT.NumFilaActual * "CAIXA_PUNTES_MULTI".IN.SeparacioFiles);
+       
+        // Mirar si cal agafar 4 puntes només per fer el control
+        IF "DB_SUERO".IN.PipettingControl AND "DB_SUERO".OUT.NumFilaMostresActual = 0 THEN
+            "DB_SUERO".OUT.YOffsetActual := INT_TO_WORD(- 4 * "CAIXA_PUNTES_MULTI".IN.SeparacioColumnes);
+        ELSE
+            "DB_SUERO".OUT.YOffsetActual := 0;
+        END_IF;
+       
+        "RbtaoutXOffset" := "DB_SUERO".OUT.xOffsetActual;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 100;
+        "RbtaoutProgramaPlc" := 15;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 20;
+        END_IF;
+       
+    20: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 30;
+        END_IF;
+       
+    30: // Anar a la posició agafar puntes
+        "RbtaoutXOffset" := "DB_SUERO".OUT.xOffsetActual;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutProgramaPlc" := 16;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 40;
+        END_IF;
+       
+    40: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 50;
+        END_IF;
+       
+    50: // Pausa agafar puntes
+        IF "tonAgafarPuntesSuero".Q THEN
+            "DB_SUERO".OUT.PuntesAgafades := TRUE;
+            // Incrementar número de fila de la caixa de puntes
+            IF "CAIXA_PUNTES_MULTI".OUT.NumFilaActual < "CAIXA_PUNTES_MULTI".IN.NumFiles - 1 THEN
+                "CAIXA_PUNTES_MULTI".OUT.NumFilaActual := "CAIXA_PUNTES_MULTI".OUT.NumFilaActual + 1;
+            ELSE
+                "CAIXA_PUNTES_MULTI".OUT.NumFilaActual := 0;
+            END_IF;
+            "DB_SUERO".OUT.NumSeqActual := 60;
+        END_IF;
+       
+    60: // Anar a la posició Apro agafar puntes
+        "RbtaoutXOffset" := "DB_SUERO".OUT.xOffsetActual;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 200;
+        "RbtaoutProgramaPlc" := 15;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 70;
+        END_IF;
+       
+    70: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 100;
+        END_IF;
+       
+        (* ------------------------------------------------------------------------------------------------------- *)
+       
+    100: // Anar a apro dosi placa mostres
+        "DB_SUERO".OUT.YOffsetActual := -1 * INT_TO_WORD("DB_SUERO".OUT.NumFilaMostresActual * "DB_SUERO".IN.SeparacioFilesPlaca);
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaMostresBio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 110;
+        END_IF;
+       
+    110: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 120;
+        END_IF;
+       
+    120: // Anar a la posició dosi placa mostres
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaMostresBio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 21;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 130;
+        END_IF;
+       
+    130: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 140;
+        END_IF;
+       
+    140: // Donar ordre d'aspirar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.amount := INT_TO_STRING("DB_SUERO".IN.VolumAspirarMostra);
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.speed := INT_TO_STRING("DB_SUERO".IN.VelAspirarMostra);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 1;
+            "DB_SUERO".OUT.NumSeqActual := 150;
+        ELSE
+            "DB_SUERO".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    150: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    160: // Anar a la posició Apro dosi placa mostres
+        "DB_SUERO".OUT.VolumAspiratActual := "DB_SUERO".IN.VolumAspirarMostra;
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaMostresBio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 170;
+        END_IF;
+       
+    170: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 180;
+        END_IF;
+       
+    180: // Lliure
+        "DB_SUERO".OUT.NumSeqActual := 190;
+       
+    190: // Anar a la posició Apro dosi placa FonsU
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaFonsU;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 200;
+        END_IF;
+       
+    200: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 210;
+        END_IF;
+       
+    210: // Anar a la posició dosi placa FonsU
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaFonsU;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 21;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 220;
+        END_IF;
+       
+    220: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            IF "DB_SUERO".IN.CorreccioYGotes <> 0 THEN
+                "DB_SUERO".OUT.NumSeqActual := 230; // PUNTEJAT-----------------------------------
+            ELSE
+                "DB_SUERO".OUT.NumSeqActual := 230;
+            END_IF;
+        END_IF;
+       
+    225: // Fer un posicionat dosi per treure les gotes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := "DB_SUERO".IN.CorreccioYGotes;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 22;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 230;
+        END_IF;
+       
+    230: // Donar ordre de dispensar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.speed := INT_TO_STRING("DB_SUERO".IN.VelBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.amount := INT_TO_STRING("DB_SUERO".IN.VolumAspirarMostra);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 1;
+            "DB_SUERO".OUT.NumSeqActual := 235;
+        ELSE
+            "DB_SUERO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    235: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.VolumAspiratActual := 0;
+            "DB_SUERO".OUT.NumSeqActual := 240;
+        END_IF;
+       
+    240: // Donar ordre de barrejar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_MIX.speed := INT_TO_STRING("DB_SUERO".IN.VelBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_MIX.amount := INT_TO_STRING("DB_SUERO".IN.VolumAspirarMostra + "DB_SUERO".IN.VolumFonsUBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_MIX.cycles := INT_TO_STRING("DB_SUERO".IN.NumCiclesBarreja);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX := 1;
+            "DB_SUERO".OUT.NumSeqActual := 245;
+        ELSE
+            "DB_SUERO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    245: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.NumSeqActual := 246;
+        END_IF;
+       
+    246: // Donar ordre d'aspirar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.amount := INT_TO_STRING("DB_SUERO".IN.VolumAspirarMostra + "DB_SUERO".IN.VolumFonsUBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.speed := INT_TO_STRING("DB_SUERO".IN.VelAspirarMostra);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 1;
+            "DB_SUERO".OUT.NumSeqActual := 247;
+        ELSE
+            "DB_SUERO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    247: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    250: // Esperar que arribi el robot
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 255;
+        END_IF;
+       
+    255: // Anar a la posició Apro dosi placa fonsU
+        "DB_SUERO".OUT.VolumAspiratActual := "DB_SUERO".IN.VolumAspirarMostra + "DB_SUERO".IN.VolumFonsUBarreja;
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaFonsU;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 260;
+        END_IF;
+       
+    260: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 270;
+        END_IF;
+       
+    270: // Anar a la posició Apro dosi placa Elisa
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaElisa;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 280;
+        END_IF;
+       
+    280: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 290;
+        END_IF;
+       
+    290: // Anar a la posició dosi placa Elisa
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaElisa;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 21;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 300;
+        END_IF;
+       
+    300: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            IF "DB_SUERO".IN.CorreccioYGotes <> 0 THEN
+                "DB_SUERO".OUT.NumSeqActual := 310; // PUNTEJAT -------------------------------------------
+            ELSE
+                "DB_SUERO".OUT.NumSeqActual := 310;
+            END_IF;
+        END_IF;
+       
+    305: // Fer un posicionat dosi per treure les gotes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := "DB_SUERO".IN.CorreccioYGotes;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 22;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 310;
+        END_IF;
+       
+    310: // Donar ordre de dispensar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.speed := INT_TO_STRING("DB_SUERO".IN.VelBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.amount := INT_TO_STRING("DB_SUERO".IN.VolumAspirarMostra + "DB_SUERO".IN.VolumFonsUBarreja);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 1;
+            "DB_SUERO".OUT.NumSeqActual := 320;
+        ELSE
+            "DB_SUERO".OUT.VolumAspiratActual := 0;
+            "DB_SUERO".OUT.NumSeqActual := 350;
+        END_IF;
+       
+    320: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.VolumAspiratActual := 0;
+            "DB_SUERO".OUT.NumSeqActual := 330;
+        END_IF;
+       
+    330: // Donar ordre de barrejar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_MIX.speed := INT_TO_STRING("DB_SUERO".IN.VelBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_MIX.amount := INT_TO_STRING("DB_SUERO".IN.VolumAspirarMostra + "DB_SUERO".IN.VolumFonsUBarreja + "DB_SUERO".IN.VolumElisaBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_MIX.cycles := INT_TO_STRING("DB_SUERO".IN.NumCiclesBarreja);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX := 1;
+            "DB_SUERO".OUT.NumSeqActual := 340;
+        ELSE
+            "DB_SUERO".OUT.NumSeqActual := 350;
+        END_IF;
+       
+    340: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.NumSeqActual := 350;
+        END_IF;
+       
+    350: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 355;
+        END_IF;
+       
+    355: // Incrementar fila de dosificat
+        "DB_SUERO".OUT.NumFilaMostresActual := "DB_SUERO".OUT.NumFilaMostresActual + 1;
+        IF "DB_SUERO".OUT.NumFilaMostresActual >= 12 THEN
+            "DB_SUERO".OUT.FiManiobra := TRUE;
+        END_IF;
+        "DB_SUERO".OUT.NumSeqActual := 357;
+       
+    357: // Anar a la posició Apro dosi placa Elisa
+        "RbtaoutXOffset" := "DB_SUERO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_SUERO".OUT.YOffsetActual + "DB_SUERO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_SUERO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_SUERO".IN.NumPlacaElisa;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_SUERO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 360;
+        END_IF;
+       
+    360: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 500;
+        END_IF;
+       
+        (* Tirar puntes ------------------------------------------- *)
+    500: // Anar a apro tirar puntes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 17;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 510;
+        END_IF;
+       
+    510: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 520;
+        END_IF;
+       
+    520: // Anar a la posició Tirar puntes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutProgramaPlc" := 18;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 530;
+        END_IF;
+       
+    530: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 540;
+        END_IF;
+       
+    540: // Donar ordre tirar puntes
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT := 1;
+            "DB_SUERO".OUT.NumSeqActual := 550;
+        ELSE
+            "DB_SUERO".OUT.NumSeqActual := 560;
+        END_IF;
+       
+    550: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_SUERO".OUT.NumSeqActual := 560;
+        END_IF;
+       
+    560: // Anar a la posició Apro tirar puntes
+        "DB_SUERO".OUT.PuntesAgafades := FALSE;
+        "DB_SUERO".OUT.VolumAspiratActual := 0;
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 17;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 570;
+        END_IF;
+       
+    570: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 0;
+        END_IF;
+       
+    1000: // Anar a HOME
+        "RbtaoutProgramaPlc" := 1;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_SUERO".OUT.NumSeqActual := 1010;
+        END_IF;
+       
+    1010: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_SUERO".OUT.NumSeqActual := 0;
+        END_IF;
+       
+       
+END_CASE;
+
+"DB_SUERO".OUT.ManiobraEnMarxa := "DB_SUERO".OUT.NumSeqActual <> 0;
+"tonAgafarPuntesSuero".TON(IN:="DB_SUERO".OUT.NumSeqActual = 50, PT:=T#1S);
+
+
