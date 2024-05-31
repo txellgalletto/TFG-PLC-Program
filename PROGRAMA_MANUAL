@@ -1,0 +1,4 @@
+/Programa manual
+//
+
+"DB_PRINCIPAL".IND_MANU := TRUE;
