@@ -1,0 +1,157 @@
+CASE "intSeqRobot" OF
+       
+    0: // Inici de la seqüència
+        IF "xMarxaMaquina" AND ("DB_PIPETA_ACTUAL".COM_OK OR "DB_COM_PIPETA".SIMULAR_COM) THEN
+            "intSeqRobot" := 5;
+        END_IF;
+       
+    5: // Comprovar si cal invertir el sentit del transvassament de líquid
+        IF "intComptadorManiobres" >= 30 THEN
+            IF NOT "xInvertirSentit" THEN
+                "xInvertirSentit" := TRUE;
+            ELSE
+                "xInvertirSentit" := FALSE;
+            END_IF;
+            "intComptadorManiobres" := 0;
+        END_IF;
+        "intSeqRobot" := 7;
+       
+    7: // Assignar banyeres d'aspirar/dosificar
+        IF NOT "xInvertirSentit" THEN
+            "wBanyeraAspirar" := 1;
+            "wBanyeraDosificar" := 2;
+        ELSE
+            "wBanyeraAspirar" := 2;
+            "wBanyeraDosificar" := 1;
+        END_IF;
+        "intSeqRobot" := 10;
+       
+    10: // Anar a la posició Apro banyera Aspirar
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "wBanyeraAspirar";
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 10;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "intSeqRobot" := 20;
+        END_IF;
+       
+    20: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "intSeqRobot" := 30;
+        END_IF;
+       
+    30: // Anar a la posició Banyera Aspirar
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "wBanyeraAspirar";
+        "RbtaoutProgramaPlc" := 11;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "intSeqRobot" := 40;
+        END_IF;
+       
+    40: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "intSeqRobot" := 50;
+        END_IF;
+       
+    50: // Donar ordre d'aspirar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 1;
+            "intSeqRobot" := 60;
+        ELSE
+            "intSeqRobot" := 70;
+        END_IF;
+       
+    60: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "intSeqRobot" := 70;
+        END_IF;
+       
+    70: // Anar a la posició Apro banyera Aspirar
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "wBanyeraAspirar";
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 10;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "intSeqRobot" := 80;
+        END_IF;
+       
+    80: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "intSeqRobot" := 90;
+        END_IF;
+       
+    90: // Anar a la posició Apro banyera Dosificar
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "wBanyeraDosificar";
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 10;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "intSeqRobot" := 100;
+        END_IF;
+       
+    100: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "intSeqRobot" := 110;
+        END_IF;
+       
+    110: // Anar a la posició Banyera Dosificar
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "wBanyeraDosificar";
+        "RbtaoutProgramaPlc" := 11;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "intSeqRobot" := 120;
+        END_IF;
+       
+    120: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "intSeqRobot" := 130;
+        END_IF;
+       
+    130: // Donar ordre de dispensar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 1;
+            "intSeqRobot" := 140;
+        ELSE
+            "intSeqRobot" := 150;
+        END_IF;
+       
+    140: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "intSeqRobot" := 150;
+        END_IF;
+       
+    150: // Anar a la posició Apro banyera Dosificar
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "wBanyeraDosificar";
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 10;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "intSeqRobot" := 160;
+        END_IF;
+       
+    160: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "intComptadorManiobres" := "intComptadorManiobres" + 1;
+            "intSeqRobot" := 0;
+        END_IF;
+       
+END_CASE;
+
