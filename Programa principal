@@ -1,0 +1,115 @@
+//Programa principal
+//
+
+(* Marxa/aturada *)
+"DB_PRINCIPAL".MARXA_MAQUINA := ("rTrigPolsMarxa".Q OR "DB_PRINCIPAL".MARXA_MAQUINA) AND NOT "DB_PRINCIPAL".TOTS_ELS_AVISOS AND NOT "DB_IN_FROM_HMI".POLS_ATURADA AND NOT "DB_PRINCIPAL".TOTES_LES_ALARMES;
+"DB_PRINCIPAL".IND_MARXA_MAQUINA := "DB_PRINCIPAL".MARXA_MAQUINA OR ("RbtdinRobotEnMovimiento" AND NOT "DB_PRINCIPAL".IND_MANU);
+"rTrigPolsMarxa"(CLK:="DB_IN_FROM_HMI".POLS_MARXA);
+
+
+(* Senyals robot *)
+"RbtdoutAlarmaPlc" := "DB_PRINCIPAL".ATUR_IMMEDIAT;
+"RbtdoutSafetyRearme" := "DB_IN_FROM_HMI".POLS_REARME;
+"RbtaoutWordComPlc" := "RbtaoutWordComPlc" + 1;
+IF "RbtaoutWordComPlc" > 20000 THEN
+    "RbtaoutWordComPlc" := 0;
+END_IF;
+
+(* Fer el posicionat inicial del robot *)
+CASE "DB_PRINCIPAL".SEQ_HOME_ROBOT OF
+       
+    0: (* Inici de la seqüència *)
+        IF NOT "DB_PRINCIPAL".CONDICIONS_INICIALS AND NOT "DB_PRINCIPAL".ATUR_IMMEDIAT AND NOT "RbtdinRobotHome" THEN
+            "DB_PRINCIPAL".SEQ_HOME_ROBOT := 1000;
+        END_IF;
+       
+    1000: (* Robot: anar a la posició de home (1) *)
+        "RbtaoutProgramaPlc" := 1;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_PRINCIPAL".SEQ_HOME_ROBOT := 1010;
+        END_IF;
+       
+    1010: (* Robot a la posició de home *)
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinRobotHome" AND "RbtdinTareaFinalizada" THEN
+            "DB_PRINCIPAL".SEQ_HOME_ROBOT := 2000;
+            "DB_PRINCIPAL".CONDICIONS_INICIALS := TRUE;
+        END_IF;
+       
+END_CASE;
+
+IF "DB_IN_FROM_HMI".POLS_EM THEN
+    "DB_PRINCIPAL".SEL_AUTO_MAN := "DB_IN_FROM_HMI".SEL_AUTO_MAN;
+END_IF;
+
+(* Cridar programa automàtic/manual *)
+IF NOT "DB_PRINCIPAL".ATUR_IMMEDIAT AND "DB_PRINCIPAL".CONDICIONS_INICIALS AND "DB_PRINCIPAL".SEL_AUTO_MAN THEN
+    "PROGRAMA_AUTOMATIC"();
+END_IF;
+
+IF NOT "DB_PRINCIPAL".ATUR_IMMEDIAT AND "DB_PRINCIPAL".CONDICIONS_INICIALS AND NOT "DB_PRINCIPAL".SEL_AUTO_MAN THEN
+    "PROGRAMA_MANUAL"();
+END_IF;
+
+(* Atur immediat *)
+"DB_PRINCIPAL".ATUR_IMMEDIAT := "DB_PRINCIPAL".TOTES_LES_ALARMES;
+
+IF "DB_PRINCIPAL".ATUR_IMMEDIAT THEN
+   
+    // Variables programa principal
+    "DB_PRINCIPAL".CONDICIONS_INICIALS := FALSE;
+    "DB_PRINCIPAL".SEQ_HOME_ROBOT := 0;
+    "DB_PRINCIPAL".IND_AUTO := FALSE;
+    "DB_PRINCIPAL".IND_MANU := FALSE;
+   
+    // Variables programa DISSOLVENT
+    "DB_DISSOLVENT".OUT.NumSeqActual := 0;
+   
+    // Variables programa SUERO
+    "DB_SUERO".OUT.NumSeqActual := 0;
+   
+END_IF;
+
+(* Reset maniobra dissolvent ----------------------------------- *)
+IF "DB_DISSOLVENT".IN.ResetManiobra THEN
+    IF "DB_DISSOLVENT".OUT.NumSeqActual = 0 THEN
+        "DB_DISSOLVENT".OUT.FiManiobra := FALSE;
+        "DB_DISSOLVENT".OUT.PlacaFonsUAcabada := FALSE;
+        "DB_DISSOLVENT".OUT.PlacaElisaAcabada := FALSE;
+        "DB_DISSOLVENT".OUT.PuntesAgafades := FALSE;
+        "DB_DISSOLVENT".OUT.NumPuntesAgafades := 0;
+        "DB_DISSOLVENT".OUT.PrimeraFilaFonsUFeta := FALSE;
+        "DB_DISSOLVENT".OUT.PrimeraFilaElisaFeta := FALSE;
+        "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 0;
+        "DB_DISSOLVENT".OUT.NumPlacaDosiActual := 0;
+        "DB_DISSOLVENT".OUT.VolumAspiratActual := 0;
+        "DB_DISSOLVENT".OUT.YOffsetActual := 0;
+    END_IF;
+    "DB_DISSOLVENT".IN.ResetManiobra := FALSE;
+END_IF;
+
+(* Reset maniobra suero ----------------------------------- *)
+IF "DB_SUERO".IN.ResetManiobra THEN
+    IF "DB_SUERO".OUT.NumSeqActual = 0 THEN
+        "DB_SUERO".OUT.FiManiobra := FALSE;
+        "DB_SUERO".OUT.PuntesAgafades := FALSE;
+        "DB_SUERO".OUT.NumFilaMostresActual := 0;
+        "DB_SUERO".OUT.VolumAspiratActual := 0;
+        "DB_SUERO".OUT.YOffsetActual := 0;
+        "DB_SUERO".OUT.xOffsetActual := 0;
+    END_IF;
+    "DB_SUERO".IN.ResetManiobra := FALSE;
+END_IF;
+
+(* Reset maniobra banc dilució ----------------------------------- *)
+IF "DB_BANC_DILUCIO".IN.ResetManiobra THEN
+    IF "DB_BANC_DILUCIO".OUT.NumSeqActual = 0 THEN
+        "DB_BANC_DILUCIO".OUT.FiManiobra := FALSE;
+        "DB_BANC_DILUCIO".OUT.PuntesAgafades := FALSE;
+        "DB_BANC_DILUCIO".OUT.NumFilaDilucioActual := 0;
+        "DB_BANC_DILUCIO".OUT.VolumAspiratActual := 0;
+        "DB_BANC_DILUCIO".OUT.YOffsetActual := 0;
+        "DB_BANC_DILUCIO".OUT.xOffsetActual := 0;
+    END_IF;
+    "DB_BANC_DILUCIO".IN.ResetManiobra := FALSE;
+END_IF;
