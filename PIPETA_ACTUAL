@@ -1,0 +1,80 @@
+//Programa pipeta actual
+//
+
+(* Informar la robot de quina pipeta porta (tTool) *)
+"RbtaoutNumPipeta" := INT_TO_WORD("DB_PIPETA_ACTUAL".SEL_PIPETA);
+
+(* Seqüència pipeta actual -------------------------------------------------------------------------------------------------------------------------------------------------------  *)
+CASE "DB_PIPETA_ACTUAL".SEQ_PIPETA OF
+       
+    0: // Inici de la seqüència
+        "DB_PIPETA_ACTUAL".COM_OK := FALSE;
+        "DB_PIPETA_ACTUAL".PIPETA_ACTIVA := '-';
+       
+        IF "DB_PIPETA_ACTUAL".SEL_PIPETA = 1 THEN
+            "DB_PIPETA_ACTUAL".PIPETA_ACTIVA := 'mono';
+            "DB_PIPETA_ACTUAL".NUM_PIPETA_COM := 1;
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 10;
+        END_IF;
+       
+        IF "DB_PIPETA_ACTUAL".SEL_PIPETA = 2 THEN
+            "DB_PIPETA_ACTUAL".PIPETA_ACTIVA := 'multi 8';
+            "DB_PIPETA_ACTUAL".NUM_PIPETA_COM := 2;
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 100;
+        END_IF;
+       
+    10: // Intentar comunicar amb la pipeta mono (1)
+        "Comunicació".PipetaADesconectar := 2;
+        "Comunicació".PipetaAConectar := 1;
+        "DB_PIPETA_ACTUAL".SEQ_PIPETA := 15;
+       
+    15: // Esperar connexió Bluetooth
+        IF "Comunicació".ConnexioP39 AND NOT "Comunicació".ConnexioP59 THEN
+            "DB_COM_PIPETA".HABILITAR_COM := TRUE;
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 1000;
+        END_IF;
+       
+    100: // Intentar comunicar amb la pipeta multi (2)
+        "Comunicació".PipetaADesconectar := 1;
+        "Comunicació".PipetaAConectar := 2;
+        "DB_PIPETA_ACTUAL".SEQ_PIPETA := 105;
+       
+    105: // Esperar connexió Bluetooth
+        IF "Comunicació".ConnexioP59 AND NOT "Comunicació".ConnexioP39 THEN
+            "DB_COM_PIPETA".HABILITAR_COM := TRUE;
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 1000;
+        END_IF;
+       
+    1000: // Donar ordre d'auto
+        IF "DB_COM_PIPETA".COM_OK THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO := 1;
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 1010;
+        END_IF;
+       
+    1010: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 1020;
+        END_IF;
+       
+    1020: // Donar ordre d'enable motors
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL := 1;
+        "DB_PIPETA_ACTUAL".SEQ_PIPETA := 1030;
+       
+    1030: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_PIPETA_ACTUAL".SEQ_PIPETA := 1040;
+        END_IF;
+       
+    1040: // Pipeta preparada per treballar
+        "DB_PIPETA_ACTUAL".COM_OK := "DB_COM_PIPETA".COM_OK;
+       
+       
+END_CASE;
+
+
+IF "DB_PIPETA_ACTUAL".SEL_PIPETA <> "DB_PIPETA_ACTUAL".NUM_PIPETA_COM AND "DB_PIPETA_ACTUAL".SEQ_PIPETA > 0 THEN
+    "Comunicació".PipetaADesconectar := "DB_PIPETA_ACTUAL".NUM_PIPETA_COM;
+    "Comunicació".PipetaAConectar := 0;
+    "DB_COM_PIPETA".HABILITAR_COM := FALSE;
+    "DB_PIPETA_ACTUAL".SEQ_PIPETA := 0;
+END_IF;
