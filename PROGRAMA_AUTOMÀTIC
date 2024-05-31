@@ -1,0 +1,23 @@
+//Programa automàtic
+//
+
+"DB_PRINCIPAL".IND_AUTO := TRUE;
+
+(* Selecció del programa de treball *)
+CASE "DB_PRINCIPAL".SEL_PROGRAMA OF
+    0: //
+        ;
+       
+    1: // Cridar programa TEST_PIPETES_BANYERES
+        "MANIOBRA_TEST_PIPETA"();
+       
+    2: // Cirdar programa MANIOBRA DISSOLVENT
+        "MANIOBRA_DISSOLVENT"();
+       
+    3: // Cridar programa MANIOBRA SUERO
+        "MANIOBRA_SUERO"();
+       
+    4: // Cridar programa MANIOBRA BANC DILUCIÓ
+        "MANIOBRA_BANC_DILUCIO"();
+       
+END_CASE;
