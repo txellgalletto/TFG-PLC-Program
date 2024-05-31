@@ -1,0 +1,466 @@
+(* Seqüència maniobra Dissolvent -------------------------------------------------------------------------------------------------------------------------------------------------------  *)
+CASE "DB_DISSOLVENT".OUT.NumSeqActual OF
+       
+    0: // Inici de la seqüència
+        IF "DB_PRINCIPAL".MARXA_MAQUINA AND ("DB_PIPETA_ACTUAL".COM_OK OR "DB_COM_PIPETA".SIMULAR_COM) AND NOT "DB_DISSOLVENT".OUT.FiManiobra THEN
+            IF "DB_DISSOLVENT".OUT.PuntesAgafades THEN
+                IF "DB_DISSOLVENT".OUT.VolumAspiratActual >= "DB_DISSOLVENT".IN.VolumDosiDissolvent THEN
+                    IF "DB_DISSOLVENT".OUT.NumPuntesAgafades = 8 THEN
+                        "DB_DISSOLVENT".OUT.NumSeqActual := 180;
+                    ELSE
+                        "DB_DISSOLVENT".OUT.NumSeqActual := 175;
+                    END_IF;
+                ELSE
+                    "DB_DISSOLVENT".OUT.NumSeqActual := 100; // Anar a la banyera
+                END_IF;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 10; // Anar a buscar puntes
+            END_IF;
+        END_IF;
+       
+        // Anar a HOME
+        IF (NOT "DB_PRINCIPAL".MARXA_MAQUINA OR ("DB_DISSOLVENT".OUT.FiManiobra AND NOT "DB_DISSOLVENT".OUT.PuntesAgafades)) AND NOT "RbtdinRobotHome" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 1000;
+        END_IF;
+       
+        // Anar a tirar puntes
+        IF "DB_PRINCIPAL".MARXA_MAQUINA AND "DB_DISSOLVENT".OUT.FiManiobra AND "DB_DISSOLVENT".OUT.PuntesAgafades THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 500;
+        END_IF;
+       
+    10: // Anar a apro agafar puntes
+        "DB_DISSOLVENT".OUT.XOffsetActual := INT_TO_WORD("CAIXA_PUNTES_MULTI".OUT.NumFilaActual * "CAIXA_PUNTES_MULTI".IN.SeparacioFiles);
+       
+        // Mirar si cal agafar 4 puntes només per fer el control
+        IF "DB_DISSOLVENT".IN.PipettingControl AND (NOT "DB_DISSOLVENT".OUT.PrimeraFilaElisaFeta OR NOT "DB_DISSOLVENT".OUT.PrimeraFilaFonsUFeta) THEN
+            "DB_DISSOLVENT".OUT.YOffsetActual := INT_TO_WORD(- 4 * "CAIXA_PUNTES_MULTI".IN.SeparacioColumnes);
+            "DB_DISSOLVENT".OUT.NumPuntesAgafades := 4;
+        ELSE
+            "DB_DISSOLVENT".OUT.YOffsetActual := 0;
+            "DB_DISSOLVENT".OUT.NumPuntesAgafades := 8;
+        END_IF;
+       
+        "RbtaoutXOffset" := "DB_DISSOLVENT".OUT.XOffsetActual;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".OUT.YOffsetActual;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 100;
+        "RbtaoutProgramaPlc" := 15;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 20;
+        END_IF;
+       
+    20: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 30;
+        END_IF;
+       
+    30: // Anar a la posició agafar puntes
+        "RbtaoutXOffset" := "DB_DISSOLVENT".OUT.XOffsetActual;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".OUT.YOffsetActual;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutProgramaPlc" := 16;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 40;
+        END_IF;
+       
+    40: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 50;
+        END_IF;
+       
+    50: // Pausa agafar puntes
+        IF "tonAgafarPuntes".Q THEN
+            "DB_DISSOLVENT".OUT.PuntesAgafades := TRUE;
+            // Incrementar número de fila de la caixa de puntes
+            IF "CAIXA_PUNTES_MULTI".OUT.NumFilaActual < "CAIXA_PUNTES_MULTI".IN.NumFiles - 1 THEN
+                "CAIXA_PUNTES_MULTI".OUT.NumFilaActual := "CAIXA_PUNTES_MULTI".OUT.NumFilaActual + 1;
+            ELSE
+                "CAIXA_PUNTES_MULTI".OUT.NumFilaActual := 0;
+            END_IF;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 60;
+        END_IF;
+       
+    60: // Anar a la posició Apro agafar puntes
+        "RbtaoutXOffset" := "DB_DISSOLVENT".OUT.XOffsetActual;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".OUT.YOffsetActual;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 200;
+        "RbtaoutProgramaPlc" := 15;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 70;
+        END_IF;
+       
+    70: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 100;
+        END_IF;
+       
+        (* ------------------------------------------------------------------------------------------------------- *)
+       
+    100: // Anar a apro banyera a aspirar dissolvent
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "DB_DISSOLVENT".IN.NumBanyeraDissolvent;
+        "RbtaoutZApro" := 150;
+        "RbtaoutProgramaPlc" := 10;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 110;
+        END_IF;
+       
+    110: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 120;
+        END_IF;
+       
+    120: // Anar a la posició Banyera
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "DB_DISSOLVENT".IN.NumBanyeraDissolvent;
+        "RbtaoutProgramaPlc" := 11;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 130;
+        END_IF;
+       
+    130: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 135;
+        END_IF;
+       
+    135: // Comprovar si porta volum aspirat la pipeta del cicle anterior
+        IF "DB_DISSOLVENT".OUT.VolumAspiratActual = 0 THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 140;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 136;
+        END_IF;
+       
+    136: // Buidar volum aspirat
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_BLOW_OUT.delay_ms := '0';
+            "DB_COM_PIPETA".PARAM_BLOW_OUT.speed := INT_TO_STRING("DB_DISSOLVENT".IN.VelDosiDissolvent);
+            "DB_COM_PIPETA".PARAM_BLOW_OUT.go_home := '0';
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT := 1;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 137;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 140;
+        END_IF;
+       
+    137: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_DISSOLVENT".OUT.VolumAspiratActual := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 140;
+        END_IF;
+       
+    140: // Donar ordre d'aspirar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.amount := INT_TO_STRING("DB_DISSOLVENT".IN.VolumAspirarDissolvent+"DB_DISSOLVENT".IN.VolumAspirarExtra);
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.speed := INT_TO_STRING("DB_DISSOLVENT".IN.VelAspirarDissolvent);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 1;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 150;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    150: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            IF "DB_DISSOLVENT".IN.VolumAspirarExtra > 0 THEN
+                "DB_DISSOLVENT".OUT.NumSeqActual := 155;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 160;
+            END_IF;
+        END_IF;
+       
+    155: // Donar ordre de dosificar volum extra
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.amount := INT_TO_STRING("DB_DISSOLVENT".IN.VolumAspirarExtra);
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.speed := INT_TO_STRING("DB_DISSOLVENT".IN.VelDosiDissolvent);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 1;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 157;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    157: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    160: // Anar a la posició Apro banyera
+        "DB_DISSOLVENT".OUT.VolumAspiratActual := "DB_DISSOLVENT".IN.VolumAspirarDissolvent;
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutNumBanyera" := "DB_DISSOLVENT".IN.NumBanyeraDissolvent;
+        "RbtaoutZApro" := 100;
+        "RbtaoutProgramaPlc" := 10;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 170;
+        END_IF;
+       
+    170: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            IF "DB_DISSOLVENT".OUT.NumPuntesAgafades = 8 THEN
+                "DB_DISSOLVENT".OUT.NumSeqActual := 180;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 175;
+            END_IF;
+        END_IF;
+       
+    175: // Anar a dosificar primera fila de control
+        IF NOT "DB_DISSOLVENT".OUT.PrimeraFilaFonsUFeta THEN
+            "DB_DISSOLVENT".OUT.NumPlacaDosiActual := "DB_DISSOLVENT".IN.NumPlacaFonsU;
+            "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 190;
+        ELSE
+            IF NOT "DB_DISSOLVENT".OUT.PrimeraFilaElisaFeta THEN
+                "DB_DISSOLVENT".OUT.NumPlacaDosiActual := "DB_DISSOLVENT".IN.NumPlacaElisa;
+                "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 0;
+                "DB_DISSOLVENT".OUT.NumSeqActual := 190;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 500; // Anar a tirar les 4 puntes
+            END_IF;
+        END_IF;
+       
+    180: // Consultar a quina placa s'ha d'anar a dosificar el dissolvent
+       
+        IF NOT "DB_DISSOLVENT".OUT.PlacaFonsUAcabada THEN
+            "DB_DISSOLVENT".OUT.NumPlacaDosiActual := "DB_DISSOLVENT".IN.NumPlacaFonsU; // Dosi placa FonsU
+        ELSE
+            IF NOT "DB_DISSOLVENT".OUT.PlacaElisaAcabada THEN
+                "DB_DISSOLVENT".OUT.NumPlacaDosiActual := "DB_DISSOLVENT".IN.NumPlacaElisa; // Dosi placa Elisa
+            ELSE
+                "DB_DISSOLVENT".OUT.FiManiobra := TRUE;
+            END_IF;
+        END_IF;
+       
+        IF NOT "DB_DISSOLVENT".OUT.FiManiobra THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 190;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 0;
+        END_IF;
+       
+    190: // Anar a la posició Apro dosi placa--------------------------------------------------
+        "DB_DISSOLVENT".OUT.YOffsetActual := -1 * INT_TO_WORD("DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual * "DB_DISSOLVENT".IN.SeparacioFilesPlaca);
+        "RbtaoutXOffset" := "DB_DISSOLVENT".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".OUT.YOffsetActual + "DB_DISSOLVENT".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_DISSOLVENT".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_DISSOLVENT".OUT.NumPlacaDosiActual;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_DISSOLVENT".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 200;
+        END_IF;
+       
+    200: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 210;
+        END_IF;
+       
+    210: // Anar a la posició dosi placa
+        "RbtaoutXOffset" := "DB_DISSOLVENT".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".OUT.YOffsetActual + "DB_DISSOLVENT".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_DISSOLVENT".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_DISSOLVENT".OUT.NumPlacaDosiActual;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_DISSOLVENT".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 21;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 220;
+        END_IF;
+       
+    220: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            IF "DB_DISSOLVENT".IN.CorreccioYGotes <> 0 THEN
+                "DB_DISSOLVENT".OUT.NumSeqActual := 225;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 230;
+            END_IF;
+        END_IF;
+       
+    225: // Fer un posicionat dosi per treure les gotes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".IN.CorreccioYGotes;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_DISSOLVENT".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 22;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 230;
+        END_IF;
+       
+    230: // Donar ordre de dispensar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.speed := INT_TO_STRING("DB_DISSOLVENT".IN.VelDosiDissolvent);
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.amount := INT_TO_STRING("DB_DISSOLVENT".IN.VolumDosiDissolvent);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 1;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 240;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 243;
+        END_IF;
+       
+    240: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 243;
+        END_IF;
+       
+    243: // Esperar que arribi el robot
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 244;
+        END_IF;
+       
+    244: // Comprovar si s'està fent la primera fila de la placa
+        IF "DB_DISSOLVENT".OUT.NumPlacaDosiActual = "DB_DISSOLVENT".IN.NumPlacaFonsU AND "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual = 0 THEN
+            "DB_DISSOLVENT".OUT.PrimeraFilaFonsUFeta := TRUE;
+            "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 1;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 250;
+        ELSE
+            IF "DB_DISSOLVENT".OUT.NumPlacaDosiActual = "DB_DISSOLVENT".IN.NumPlacaElisa AND "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual = 0 THEN
+                "DB_DISSOLVENT".OUT.PrimeraFilaElisaFeta := TRUE;
+                "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 1;
+                "DB_DISSOLVENT".OUT.NumSeqActual := 250;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 245;
+            END_IF;
+        END_IF;
+       
+    245: // Registrar volum dosificat
+        "DB_DISSOLVENT".OUT.VolumAspiratActual := "DB_DISSOLVENT".OUT.VolumAspiratActual - "DB_DISSOLVENT".IN.VolumDosiDissolvent;
+        // Incrementar comptador de files de la placa
+        "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual + 1;
+       
+        IF "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual >= 12 THEN
+            IF NOT "DB_DISSOLVENT".OUT.PlacaFonsUAcabada THEN
+                "DB_DISSOLVENT".OUT.PlacaFonsUAcabada := TRUE;
+                "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 1;
+            ELSE
+                "DB_DISSOLVENT".OUT.PlacaElisaAcabada := TRUE;
+                "DB_DISSOLVENT".OUT.NumFilaPlacaDosiActual := 1;
+            END_IF;
+        END_IF;
+       
+        IF "DB_DISSOLVENT".OUT.PlacaFonsUAcabada AND "DB_DISSOLVENT".OUT.PlacaElisaAcabada THEN
+            "DB_DISSOLVENT".OUT.FiManiobra := TRUE;
+        END_IF;
+        "DB_DISSOLVENT".OUT.NumSeqActual := 250;
+       
+    250: // Anar a la posició Apro dosi placa
+        "RbtaoutXOffset" := "DB_DISSOLVENT".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_DISSOLVENT".OUT.YOffsetActual + "DB_DISSOLVENT".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_DISSOLVENT".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_DISSOLVENT".OUT.NumPlacaDosiActual;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_DISSOLVENT".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 260;
+        END_IF;
+       
+    260: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 270;
+        END_IF;
+       
+    270: // Comprovar si queda volum per seguir dosificant
+        IF "DB_DISSOLVENT".OUT.VolumAspiratActual >= "DB_DISSOLVENT".IN.VolumDosiDissolvent AND NOT "DB_DISSOLVENT".OUT.FiManiobra THEN
+            IF "DB_DISSOLVENT".OUT.NumPuntesAgafades = 8 THEN
+                "DB_DISSOLVENT".OUT.NumSeqActual := 180;
+            ELSE
+                "DB_DISSOLVENT".OUT.NumSeqActual := 175;
+            END_IF;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 0;
+        END_IF;
+       
+        (* Tirar puntes ------------------------------------------- *)
+    500: // Anar a apro tirar puntes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 17;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 510;
+        END_IF;
+       
+    510: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 520;
+        END_IF;
+       
+    520: // Anar a la posició Tirar puntes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutProgramaPlc" := 18;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 530;
+        END_IF;
+       
+    530: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 540;
+        END_IF;
+       
+    540: // Donar ordre tirar puntes
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT := 1;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 550;
+        ELSE
+            "DB_DISSOLVENT".OUT.NumSeqActual := 560;
+        END_IF;
+       
+    550: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 560;
+        END_IF;
+       
+    560: // Anar a la posició Apro tirar puntes
+        "DB_DISSOLVENT".OUT.PuntesAgafades := FALSE;
+        "DB_DISSOLVENT".OUT.NumPuntesAgafades := 0;
+        "DB_DISSOLVENT".OUT.VolumAspiratActual := 0;
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 17;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 570;
+        END_IF;
+       
+    570: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 0;
+        END_IF;
+       
+    1000: // Anar a HOME
+        "RbtaoutProgramaPlc" := 1;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_DISSOLVENT".OUT.NumSeqActual := 1010;
+        END_IF;
+       
+    1010: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_DISSOLVENT".OUT.NumSeqActual := 0;
+        END_IF;
+       
+       
+END_CASE;
+
+"DB_DISSOLVENT".OUT.ManiobraEnMarxa := "DB_DISSOLVENT".OUT.NumSeqActual <> 0;
+"tonAgafarPuntes".TON(IN:="DB_DISSOLVENT".OUT.NumSeqActual = 50, PT:=T#1S);
+
+
