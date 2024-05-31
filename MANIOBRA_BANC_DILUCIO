@@ -1,0 +1,366 @@
+(* Seqüència maniobra Banc Dilució -------------------------------------------------------------------------------------------------------------------------------------------------------  *)
+CASE "DB_BANC_DILUCIO".OUT.NumSeqActual OF
+       
+    0: // Inici de la seqüència
+        IF "DB_PRINCIPAL".MARXA_MAQUINA AND ("DB_PIPETA_ACTUAL".COM_OK OR "DB_COM_PIPETA".SIMULAR_COM) AND NOT "DB_BANC_DILUCIO".OUT.FiManiobra THEN
+            IF "DB_BANC_DILUCIO".OUT.PuntesAgafades THEN
+                "DB_BANC_DILUCIO".OUT.NumSeqActual := 100;
+            ELSE
+                "DB_BANC_DILUCIO".OUT.NumSeqActual := 10;
+            END_IF;
+        END_IF;
+       
+        // Anar a HOME
+        IF (NOT "DB_PRINCIPAL".MARXA_MAQUINA OR ("DB_BANC_DILUCIO".OUT.FiManiobra AND NOT "DB_BANC_DILUCIO".OUT.PuntesAgafades)) AND NOT "RbtdinRobotHome" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 1000;
+        END_IF;
+       
+        // Anar a tirar puntes
+        IF "DB_PRINCIPAL".MARXA_MAQUINA AND "DB_BANC_DILUCIO".OUT.FiManiobra AND "DB_BANC_DILUCIO".OUT.PuntesAgafades THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 500;
+        END_IF;
+
+    10: // Anar a apro agafar puntes
+        "DB_BANC_DILUCIO".OUT.xOffsetActual := INT_TO_WORD("CAIXA_PUNTES_MULTI".OUT.NumFilaActual * "CAIXA_PUNTES_MULTI".IN.SeparacioFiles);
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".OUT.xOffsetActual;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 100;
+        "RbtaoutProgramaPlc" := 15;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 20;
+        END_IF;
+       
+    20: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 30;
+        END_IF;
+       
+    30: // Anar a la posició agafar puntes
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".OUT.xOffsetActual;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutProgramaPlc" := 16;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 40;
+        END_IF;
+       
+    40: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 50;
+        END_IF;
+       
+    50: // Pausa agafar puntes
+        IF "tonAgafarPuntesDilucio".Q THEN
+            "DB_BANC_DILUCIO".OUT.PuntesAgafades := TRUE;
+            // Incrementar número de fila de la caixa de puntes
+            IF "CAIXA_PUNTES_MULTI".OUT.NumFilaActual < "CAIXA_PUNTES_MULTI".IN.NumFiles - 1 THEN
+                "CAIXA_PUNTES_MULTI".OUT.NumFilaActual := "CAIXA_PUNTES_MULTI".OUT.NumFilaActual + 1;
+            ELSE
+                "CAIXA_PUNTES_MULTI".OUT.NumFilaActual := 0;
+            END_IF;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 60;
+        END_IF;
+       
+    60: // Anar a la posició Apro agafar puntes
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".OUT.xOffsetActual;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 200;
+        "RbtaoutProgramaPlc" := 15;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 70;
+        END_IF;
+       
+    70: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 100;
+        END_IF;
+       
+        (* ------------------------------------------------------------------------------------------------------- *)
+       
+    100: // Anar a apro dosi placa dilució (primera posició de la placa Yoffset = 0)
+        "DB_BANC_DILUCIO".OUT.YOffsetActual := 0;
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".OUT.YOffsetActual + "DB_BANC_DILUCIO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_BANC_DILUCIO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_BANC_DILUCIO".IN.NumPlacaBancDilucio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 110;
+        END_IF;
+       
+    110: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 120;
+        END_IF;
+       
+    120: // Anar a la posició dosi placa dilució (primera posició de la placa Yoffset = 0)
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".OUT.YOffsetActual + "DB_BANC_DILUCIO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_BANC_DILUCIO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_BANC_DILUCIO".IN.NumPlacaBancDilucio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 21;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 130;
+        END_IF;
+       
+    130: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 140;
+        END_IF;
+       
+    140: // Donar ordre d'aspirar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.amount := INT_TO_STRING("DB_BANC_DILUCIO".IN.VolumAspirarDilucio);
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.speed := INT_TO_STRING("DB_BANC_DILUCIO".IN.VelAspirarDilucio);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 1;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 150;
+        ELSE
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    150: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 160;
+        END_IF;
+       
+    160: // Anar a la posició Apro dosi placa dilució (primera posició de la placa Yoffset = 0)
+        "DB_BANC_DILUCIO".OUT.VolumAspiratActual := "DB_BANC_DILUCIO".IN.VolumAspirarDilucio;
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".OUT.YOffsetActual + "DB_BANC_DILUCIO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_BANC_DILUCIO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_BANC_DILUCIO".IN.NumPlacaBancDilucio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 170;
+        END_IF;
+       
+    170: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 180;
+        END_IF;
+       
+        (* ------------------------------------------------------------------------------------------------------- *)
+       
+    180: // Incrementar fila de dosificat
+        "DB_BANC_DILUCIO".OUT.NumFilaDilucioActual := "DB_BANC_DILUCIO".OUT.NumFilaDilucioActual + 1;
+        IF "DB_BANC_DILUCIO".OUT.NumFilaDilucioActual >= 12 THEN
+            "DB_BANC_DILUCIO".OUT.FiManiobra := TRUE;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 500; // Fi de la placa - tirar puntes
+        ELSE
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 190; // Següent fila
+        END_IF;
+       
+    190: // Anar a la posició Apro dosi següent fila dilució
+        "DB_BANC_DILUCIO".OUT.YOffsetActual := -1 * INT_TO_WORD("DB_BANC_DILUCIO".OUT.NumFilaDilucioActual * "DB_BANC_DILUCIO".IN.SeparacioFilesPlaca);
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".OUT.YOffsetActual + "DB_BANC_DILUCIO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_BANC_DILUCIO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_BANC_DILUCIO".IN.NumPlacaBancDilucio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 200;
+        END_IF;
+       
+    200: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 210;
+        END_IF;
+       
+    210: // Anar a la posició dosi següent fila dilució
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".OUT.YOffsetActual + "DB_BANC_DILUCIO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_BANC_DILUCIO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_BANC_DILUCIO".IN.NumPlacaBancDilucio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 21;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 220;
+        END_IF;
+       
+    220: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            IF "DB_BANC_DILUCIO".IN.CorreccioYGotes <> 0 THEN
+                "DB_BANC_DILUCIO".OUT.NumSeqActual := 230; // PUNTEJAT-----------------------------------
+            ELSE
+                "DB_BANC_DILUCIO".OUT.NumSeqActual := 230;
+            END_IF;
+        END_IF;
+       
+    225: // Fer un posicionat dosi per treure les gotes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".IN.CorreccioYGotes;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutProgramaPlc" := 22;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 230;
+        END_IF;
+       
+    230: // Donar ordre de dispensar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.speed := INT_TO_STRING("DB_BANC_DILUCIO".IN.VelBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_DISPENSE.amount := INT_TO_STRING("DB_BANC_DILUCIO".IN.VolumAspirarDilucio);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 1;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 235;
+        ELSE
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    235: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 240;
+        END_IF;
+       
+    240: // Donar ordre de barrejar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_MIX.speed := INT_TO_STRING("DB_BANC_DILUCIO".IN.VelBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_MIX.amount := INT_TO_STRING("DB_BANC_DILUCIO".IN.VolumAspirarDilucio + "DB_BANC_DILUCIO".IN.VolumBarreja);
+            "DB_COM_PIPETA".PARAM_RUN_MIX.cycles := INT_TO_STRING("DB_BANC_DILUCIO".IN.NumCiclesBarreja);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX := 1;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 245;
+        ELSE
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    245: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 246;
+        END_IF;
+       
+    246: // Donar ordre d'aspirar
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.amount := INT_TO_STRING("DB_BANC_DILUCIO".IN.VolumAspirarDilucio);
+            "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.speed := INT_TO_STRING("DB_BANC_DILUCIO".IN.VelAspirarDilucio);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 1;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 247;
+        ELSE
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    247: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 250;
+        END_IF;
+       
+    250: // Esperar que arribi el robot
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 255;
+        END_IF;
+       
+    255: // Anar a la posició Apro dosi següent fila dilució
+        "RbtaoutXOffset" := "DB_BANC_DILUCIO".IN.CorreccioXDosi;
+        "RbtaoutYOffset" := "DB_BANC_DILUCIO".OUT.YOffsetActual + "DB_BANC_DILUCIO".IN.CorreccioYDosi;
+        "RbtaoutZOffset" := "DB_BANC_DILUCIO".IN.CorreccioZDosi;
+        "RbtaoutNumPlacaDosi" := "DB_BANC_DILUCIO".IN.NumPlacaBancDilucio;
+        "RbtaoutAnguloInclinacionPipeta" := "DB_BANC_DILUCIO".IN.InclinacioPipeta;
+        "RbtaoutZApro" := 25;
+        "RbtaoutProgramaPlc" := 20;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 260;
+        END_IF;
+       
+    260: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 180;
+        END_IF;
+       
+       
+        (* Tirar puntes ------------------------------------------- *)
+    500: // Anar a apro tirar puntes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 17;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 510;
+        END_IF;
+       
+    510: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 520;
+        END_IF;
+       
+    520: // Anar a la posició Tirar puntes
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutProgramaPlc" := 18;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 530;
+        END_IF;
+       
+    530: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 540;
+        END_IF;
+       
+    540: // Donar ordre tirar puntes
+        IF NOT "DB_COM_PIPETA".SIMULAR_COM THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT := 1;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 550;
+        ELSE
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 560;
+        END_IF;
+       
+    550: // Esperar comanda = 0
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT = 0 AND "DB_COM_PIPETA".COMANDO_OK THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 560;
+        END_IF;
+       
+    560: // Anar a la posició Apro tirar puntes
+        "DB_BANC_DILUCIO".OUT.PuntesAgafades := FALSE;
+        "DB_BANC_DILUCIO".OUT.VolumAspiratActual := 0;
+        "RbtaoutXOffset" := 0;
+        "RbtaoutYOffset" := 0;
+        "RbtaoutZOffset" := 0;
+        "RbtaoutZApro" := 50;
+        "RbtaoutProgramaPlc" := 17;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 570;
+        END_IF;
+       
+    570: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 0;
+        END_IF;
+       
+    1000: // Anar a HOME
+        "RbtaoutProgramaPlc" := 1;
+        IF "RbtainProgramaRobot" = "RbtaoutProgramaPlc" AND NOT "RbtdinTareaFinalizada" THEN
+            "RbtaoutProgramaPlc" := 0;
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 1010;
+        END_IF;
+       
+    1010: // Esperar que arribi
+        IF "RbtainProgramaRobot" = 0 AND "RbtdinTareaFinalizada" THEN
+            "DB_BANC_DILUCIO".OUT.NumSeqActual := 0;
+        END_IF;
+       
+       
+END_CASE;
+
+"DB_BANC_DILUCIO".OUT.ManiobraEnMarxa := "DB_BANC_DILUCIO".OUT.NumSeqActual <> 0;
+"tonAgafarPuntesDilucio".TON(IN:="DB_BANC_DILUCIO".OUT.NumSeqActual = 50, PT:=T#1S);
