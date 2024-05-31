@@ -1,0 +1,400 @@
+//Programa comunicació pipeta
+//
+
+(* Seqüència comunicació pipetes ----------------------------------------------------------------------------------------- *)
+
+CASE "DB_COM_PIPETA".SEQ_COM OF
+       
+    0: // Inici de la seqüència
+        IF "DB_COM_PIPETA".HABILITAR_COM AND "Comunicació".ComandaActual = '' AND "Comunicació".Resposta = '' AND "DB_COM_PIPETA".COM_OK AND NOT "DB_COM_PIPETA".COM_ERROR THEN
+            "DB_COM_PIPETA".SIMULAR_COM := FALSE;
+            "DB_COM_PIPETA".SEQ_COM := 10;
+        END_IF;
+       
+        IF "DB_COM_PIPETA".COM_ERROR AND "Comunicació".Resposta <> '' THEN
+            "Comunicació".Resposta := '';
+        END_IF;
+       
+        // Provar si  hi ha comunicació amb la pipeta
+        IF "tonTempsComprovarCom".Q THEN
+            "DB_COM_PIPETA".COM_ERROR := FALSE;
+            "DB_COM_PIPETA".SEQ_COM := 5;
+        END_IF;
+       
+        // Mantenir comunicació activa amb la pipeta
+        IF "tonTempsMantenirComActiva".Q THEN
+            "DB_COM_PIPETA".SEQ_COM := 5;
+        END_IF;
+       
+        IF NOT "DB_COM_PIPETA".HABILITAR_COM THEN
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_CONSECUTIVES := 0;
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_TOTALS := 0;
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_TIMEOUT_TOTALS := 0;
+            "DB_COM_PIPETA".COM_OK := FALSE;
+            "DB_COM_PIPETA".COM_ERROR := FALSE;
+        END_IF;
+       
+    5: // Enviar trama GET DATE TIME per comprovar si hi ha comunicació amb la pipeta
+        "Comunicació".ComandaActual := "diccionarioComandas".GET_DATE_TIME;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME := 2;
+        "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+        "DB_COM_PIPETA".SEQ_COM := 200;
+       
+    10: // Esperar comanda GET VERSION
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_VERSION = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_VERSION;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_VERSION := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+       
+         // Esperar comanda GET SERIAL
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_SERIAL = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_SERIAL;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_SERIAL := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+       
+         // Esperar comanda GET ID
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_ID = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_ID;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_ID := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+       
+         // Esperar comanda GET BATTERY LEVEL
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_BATTERY_LEVEL = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_BATTERY_LEVEL;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_BATTERY_LEVEL := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET MIN VOLUME
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MIN_VOLUME = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_MIN_VOLUME;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MIN_VOLUME := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET NOMINAL VOLUME
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_NOMINAL_VOLUME = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_NOMINAL_VOLUME;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_NOMINAL_VOLUME := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET MODEL
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MODEL = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_MODEL;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MODEL := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET DATE TIME
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_DATE_TIME;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET STATUS CALIBRATION
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CALIBRATION = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_STATUS_CALIBRATION;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CALIBRATION := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET STATUS MAINTENANCE
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_MAINTENANCE = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_STATUS_MAINTENANCE;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_MAINTENANCE := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda GET STATUS CHECK
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CHECK = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".GET_STATUS_CHECK;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CHECK := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda BLOW OUT
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "diccionarioComandas".BLOW_OUT.ComandaBlowout.go_home := "DB_COM_PIPETA".PARAM_BLOW_OUT.go_home;
+            "diccionarioComandas".BLOW_OUT.ComandaBlowout.speed := "DB_COM_PIPETA".PARAM_BLOW_OUT.speed;
+            "diccionarioComandas".BLOW_OUT.ComandaBlowout.delay_ms := "DB_COM_PIPETA".PARAM_BLOW_OUT.delay_ms;
+            "Comunicació".ComandaActual := CONCAT(IN1 := "diccionarioComandas".BLOW_OUT.ComandaBlowout.PartIniciFixa,
+                                                  IN2 := ' ',
+                                                  IN3 := ("diccionarioComandas".BLOW_OUT.ComandaBlowout.go_home),
+                                                  IN4 := ' ',
+                                                  IN5 := ("diccionarioComandas".BLOW_OUT.ComandaBlowout.speed),
+                                                  IN6 := ' ',
+                                                  IN7 := ("diccionarioComandas".BLOW_OUT.ComandaBlowout.delay_ms),
+                                                  IN8 := "diccionarioComandas".BLOW_OUT.ComandaBlowout.PartFinalFixa);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda RUN INIT
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_INIT = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".RUN_INIT;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_INIT := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda TIP EJECT
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".TIP_EJECT;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda RUN MIX
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "diccionarioComandas".RUN_MIX.ComandaRunmix.cycles := "DB_COM_PIPETA".PARAM_RUN_MIX.cycles;
+            "diccionarioComandas".RUN_MIX.ComandaRunmix.speed := "DB_COM_PIPETA".PARAM_RUN_MIX.speed;
+            "diccionarioComandas".RUN_MIX.ComandaRunmix.amount := "DB_COM_PIPETA".PARAM_RUN_MIX.amount;
+            "Comunicació".ComandaActual := CONCAT(IN1 := "diccionarioComandas".RUN_MIX.ComandaRunmix.PartIniciFixa,
+                                                  IN2 := ' ',
+                                                  IN3 := ("diccionarioComandas".RUN_MIX.ComandaRunmix.cycles),
+                                                  IN4 := ' ',
+                                                  IN5 := ("diccionarioComandas".RUN_MIX.ComandaRunmix.speed),
+                                                  IN6 := ' ',
+                                                  IN7 := ("diccionarioComandas".RUN_MIX.ComandaRunmix.amount),
+                                                  IN8 := "diccionarioComandas".RUN_MIX.ComandaRunmix.PartFinalFixa);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda RUN ASPIRATE
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "diccionarioComandas".RUN_ASPIRATE.ComandaRunAspirateDispense.amount := "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.amount;
+            "diccionarioComandas".RUN_ASPIRATE.ComandaRunAspirateDispense.speed := "DB_COM_PIPETA".PARAM_RUN_ASPIRATE.speed;
+            "Comunicació".ComandaActual := CONCAT(IN1 := "diccionarioComandas".RUN_ASPIRATE.ComandaRunAspirateDispense.PartIniciFixa,
+                                                  IN2 := ' ',
+                                                  IN3 := ("diccionarioComandas".RUN_ASPIRATE.ComandaRunAspirateDispense.amount),
+                                                  IN4 := ' ',
+                                                  IN5 := ("diccionarioComandas".RUN_ASPIRATE.ComandaRunAspirateDispense.speed),
+                                                  IN6 := "diccionarioComandas".RUN_ASPIRATE.ComandaRunAspirateDispense.PartFinalFixa);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda RUN DISPENSE
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "diccionarioComandas".RUN_DISPENSE.ComandaRunAspirateDispense.amount := "DB_COM_PIPETA".PARAM_RUN_DISPENSE.amount;
+            "diccionarioComandas".RUN_DISPENSE.ComandaRunAspirateDispense.speed := "DB_COM_PIPETA".PARAM_RUN_DISPENSE.speed;
+            "Comunicació".ComandaActual := CONCAT(IN1 := "diccionarioComandas".RUN_DISPENSE.ComandaRunAspirateDispense.PartIniciFixa,
+                                                  IN2 := ' ',
+                                                  IN3 := ("diccionarioComandas".RUN_DISPENSE.ComandaRunAspirateDispense.amount),
+                                                  IN4 := ' ',
+                                                  IN5 := ("diccionarioComandas".RUN_DISPENSE.ComandaRunAspirateDispense.speed),
+                                                  IN6 := "diccionarioComandas".RUN_DISPENSE.ComandaRunAspirateDispense.PartFinalFixa);
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda ENABLE MOTOR CONTROL
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".ENABLE_MOTOR_CONTROL;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+        // Esperar comanda AUTO
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO = 1 AND NOT "Comunicació".ComandaProcessada THEN
+            "Comunicació".ComandaActual := "diccionarioComandas".AUTO;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO := 2;
+            "Comunicació".ComandaProcessada := TRUE;
+            "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := TRUE;
+           
+         // Mantenir comunicació activa amb la pipeta
+         ELSIF "tonTempsMantenirComActiva".Q THEN
+             "DB_COM_PIPETA".SEQ_COM := 5;
+           
+        // Tornar a l'inici de la seqüència
+        ELSIF NOT "DB_COM_PIPETA".HABILITAR_COM AND NOT "Comunicació".ComandaProcessada THEN
+            "DB_COM_PIPETA".SEQ_COM := 0;
+           
+        END_IF;
+       
+        // Comanda processada - Anar a esperar resposta
+        IF "Comunicació".ComandaProcessada AND "Comunicació".ComandaActual <> '' AND "Comunicació".ComandaRebudaNodeRED THEN
+            "DB_COM_PIPETA".SEQ_COM := 200;
+        END_IF;
+       
+    (* Resposta de la pipeta --------------------------------------------------------------------------------------------------------- *)
+       
+    200: // Esperant resposta de la pipeta...
+        IF "Comunicació".Resposta <> '' THEN
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_TOTALS := "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_TOTALS + 1;
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_CONSECUTIVES := "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_CONSECUTIVES + 1;
+            IF "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_CONSECUTIVES >= "DB_COM_PIPETA".NUM_TRAMES_OK_CONSEC THEN
+                "DB_COM_PIPETA".COM_OK := TRUE;
+            END_IF;
+            "DB_COM_PIPETA".SEQ_COM := 205;
+        END_IF;
+       
+        // Tiemout no hi ha resposta de la pipeta
+        IF "tonTimeoutRespostaPipeta".Q THEN
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_TIMEOUT_TOTALS := "DB_COM_PIPETA".COMPTADOR_TRAMES_TIMEOUT_TOTALS + 1;
+            "DB_COM_PIPETA".COMPTADOR_TRAMES_OK_CONSECUTIVES := 0;
+            "DB_COM_PIPETA".COMANDO_OK := FALSE;
+            "DB_COM_PIPETA".SEQ_COM := 300;
+        END_IF;
+       
+    205: // Comprovar resposta OK de la pipeta després d'una comanda d'acció
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_INIT = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL = 2 OR
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO = 2 THEN
+
+            IF "Comunicació".Resposta = 'OK 0$R$L' THEN
+                "DB_COM_PIPETA".COMANDO_OK := TRUE;
+            ELSE
+                "DB_COM_PIPETA".COMANDO_OK := FALSE;
+            END_IF;
+           
+        END_IF;
+        "DB_COM_PIPETA".SEQ_COM := 210;
+       
+    210: // Llegir resposta de la pipeta
+        IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_VERSION = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_VERSION := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_VERSION := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_SERIAL = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_SERIAL := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_SERIAL := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_ID = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_ID := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_ID := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_BATTERY_LEVEL = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_BATTERY_LEVEL := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_BATTERY_LEVEL := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MIN_VOLUME = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_MIN_VOLUME := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MIN_VOLUME := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_NOMINAL_VOLUME = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_NOMINAL_VOLUME := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_NOMINAL_VOLUME := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MODEL = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_MODEL := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MODEL := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_DATE_TIME := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CALIBRATION = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_STATUS_CALIBRATION := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CALIBRATION := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_MAINTENANCE = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_STATUS_MAINTENANCE := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_MAINTENANCE := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CHECK = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.GET_STATUS_CHECK := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CHECK := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.BLOW_OUT := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_INIT = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.RUN_INIT := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_INIT := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.TIP_EJECT := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.RUN_MIX := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.RUN_ASPIRATE := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.RUN_DISPENSE := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.ENABLE_MOTOR_CONTROL := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL := 0;
+        ELSIF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO = 2 THEN
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaResponses.AUTO := "Comunicació".Resposta;
+            "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO := 0;
+           
+        END_IF;
+       
+       
+        "DB_COM_PIPETA".SEQ_COM := 220;
+       
+       
+    220: // Netejar variables
+        "Comunicació".Resposta := '';  // Netejar resposta
+        "Comunicació".ComandaActual := ''; // Netejar comanda
+        "Comunicació".ComandaProcessada := FALSE;
+        "DB_COM_PIPETA".TEMPS_CICLE_ACTUAL := TIME_TO_INT("tonMedirTiempoCiclo".ET);
+        IF "DB_COM_PIPETA".TEMPS_CICLE_ACTUAL > "DB_COM_PIPETA".TEMPS_CICLE_MAXIM THEN
+            "DB_COM_PIPETA".TEMPS_CICLE_MAXIM := "DB_COM_PIPETA".TEMPS_CICLE_ACTUAL;
+        END_IF;
+        "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := FALSE;
+        "DB_COM_PIPETA".SEQ_COM := 0;
+       
+    300: // Error timeout sense resposta
+        "DB_COM_PIPETA".COM_ERROR := TRUE;
+        "DB_COM_PIPETA".COM_OK := FALSE;
+        "Comunicació".Resposta := '';  // Netejar resposta
+        "Comunicació".ComandaActual := ''; // Netejar comanda
+        "Comunicació".ComandaProcessada := FALSE;
+        "DB_COM_PIPETA".MEDIR_TEMPS_CICLE := FALSE;
+       
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_VERSION := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_SERIAL := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_ID := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_BATTERY_LEVEL := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MIN_VOLUME := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_NOMINAL_VOLUME := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MODEL := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CALIBRATION := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_MAINTENANCE := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CHECK := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.BLOW_OUT := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_INIT := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.TIP_EJECT := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_MIX := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_ASPIRATE := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.RUN_DISPENSE := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.ENABLE_MOTOR_CONTROL := 0;
+        "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.AUTO := 0;
+       
+        "DB_COM_PIPETA".SEQ_COM := 0;
+       
+       
+END_CASE;
+
+"tonTempsComprovarCom".TON(IN:= "DB_COM_PIPETA".SEQ_COM = 0 AND "DB_COM_PIPETA".HABILITAR_COM AND "Comunicació".ComandaActual = ''
+                           AND "Comunicació".Resposta = '' AND NOT "DB_COM_PIPETA".COM_OK, PT:=DWORD_TO_TIME("DB_COM_PIPETA".TEMPS_COMPROVAR_COM));
+
+"tonTempsMantenirComActiva".TON(IN:= "DB_COM_PIPETA".HABILITAR_MANTENIR_COM_ACTIVA AND ("DB_COM_PIPETA".SEQ_COM = 0 OR "DB_COM_PIPETA".SEQ_COM = 10) AND "DB_COM_PIPETA".HABILITAR_COM AND "Comunicació".ComandaActual = ''
+                                AND "Comunicació".Resposta = '' AND "DB_COM_PIPETA".COM_OK AND NOT "DB_COM_PIPETA".COM_ERROR AND NOT "Comunicació".ComandaProcessada, PT:=DWORD_TO_TIME("DB_COM_PIPETA".TEMPS_MANTENIR_COM_ACTIVA));
+
+(* Assignar temps màxim timeout resposta segons si el comando és un GET o és una acció (RUN) *)
+IF "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_VERSION = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_SERIAL = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_ID = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_BATTERY_LEVEL = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MIN_VOLUME = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_NOMINAL_VOLUME = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_MODEL = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_DATE_TIME = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CALIBRATION = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_MAINTENANCE = 2
+    OR "DB_COM_PIPETA".ESTAT_PIPETA.ST_PipetaCommands.GET_STATUS_CHECK = 2 THEN
+    #dwTempsTimeout := "DB_COM_PIPETA".TEMPS_TIMEOUT_RESPOSTA_GET;
+ELSE
+    #dwTempsTimeout := "DB_COM_PIPETA".TEMPS_TIMEOUT_RESPOSTA_RUN;
+END_IF;
+
+"tonTimeoutRespostaPipeta".TON(IN:="DB_COM_PIPETA".SEQ_COM = 200, PT:=DWORD_TO_TIME(#dwTempsTimeout));
+
+"tonMedirTiempoCiclo".TON(IN:="DB_COM_PIPETA".MEDIR_TEMPS_CICLE,
+                          PT:=T#10S);
+
